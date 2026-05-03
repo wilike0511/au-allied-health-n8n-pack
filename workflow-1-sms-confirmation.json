@@ -1,0 +1,783 @@
+{
+  "name": "WF-01 — SMS Appointment Confirmation",
+  "nodes": [
+    {
+      "parameters": {
+        "calendar": "={{ $vars.clinic_calendar_id || 'primary' }}",
+        "triggerOn": "eventCreated",
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        }
+      },
+      "id": "f7c62252-1d8d-4f43-b573-a94efe656b4f",
+      "name": "Google Calendar Trigger — Event Created",
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1260,
+        -40
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "name": "Google Calendar - Clinic"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": "={{ $vars.clinic_calendar_id || 'primary' }}",
+        "triggerOn": "eventUpdated",
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        }
+      },
+      "id": "89b833e4-7482-4ab6-ae03-c13fcb040720",
+      "name": "Google Calendar Trigger — Event Updated",
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1260,
+        160
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "name": "Google Calendar - Clinic"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ccfg0001-0000-0000-0000-000000000001",
+              "name": "clinic_name",
+              "value": "Your Clinic",
+              "type": "string"
+            },
+            {
+              "id": "ccfg0001-0000-0000-0000-000000000002",
+              "name": "reschedule_url",
+              "value": "https://example.com/reschedule",
+              "type": "string"
+            },
+            {
+              "id": "ccfg0001-0000-0000-0000-000000000003",
+              "name": "twilio_from_number",
+              "value": "+61400000000",
+              "type": "string"
+            },
+            {
+              "id": "ccfg0001-0000-0000-0000-000000000004",
+              "name": "audit_sheet_id",
+              "value": "YOUR_SHEET_ID_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "ccfg0001-0000-0000-0000-000000000000",
+      "name": "Clinic Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1140,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "extr0001-0000-0000-0000-000000000001",
+              "name": "event_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000002",
+              "name": "event_summary",
+              "value": "={{ $json.summary || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000003",
+              "name": "event_description",
+              "value": "={{ $json.description || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000004",
+              "name": "event_location",
+              "value": "={{ $json.location || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000005",
+              "name": "event_start_iso",
+              "value": "={{ $json.start.dateTime }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000006",
+              "name": "event_timezone",
+              "value": "={{ $json.start.timeZone || 'Australia/Perth' }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000007",
+              "name": "event_updated_iso",
+              "value": "={{ $json.updated }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000008",
+              "name": "event_status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000009",
+              "name": "phone_raw",
+              "value": "={{ ($json.description || '').match(/(?:phone|mobile|tel|ph)\\s*[:\\-]?\\s*([+\\d][\\d\\s\\(\\)\\-]{6,18})/i)?.[1] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000010",
+              "name": "is_internal",
+              "value": "={{ /internal|staff meeting|staff training|team meeting|admin block/i.test($json.summary || '') }}",
+              "type": "boolean"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000011",
+              "name": "is_cancelled",
+              "value": "={{ $json.status === 'cancelled' }}",
+              "type": "boolean"
+            },
+            {
+              "id": "extr0001-0000-0000-0000-000000000012",
+              "name": "skip_marker",
+              "value": "={{ /\\[skip-sms\\]/i.test(($json.description || '') + ' ' + ($json.summary || '')) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "815c1f7f-4adf-478f-86ef-c1468f4ae593",
+      "name": "Set: Extract Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1030,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const STATUS = {\n  VALID: 'valid',\n  EMPTY: 'empty',\n  INVALID_FORMAT: 'invalid_format',\n  LIKELY_LANDLINE: 'likely_landline',\n};\n\nreturn items.map(item => {\n  const raw = (item.json.phone_raw || '').trim();\n\n  if (!raw) {\n    return { json: { ...item.json, phone_e164: '', phone_status: STATUS.EMPTY } };\n  }\n\n  let digits = raw.replace(/[^\\d+]/g, '');\n  if (digits.startsWith('+')) {\n    digits = '+' + digits.slice(1).replace(/\\+/g, '');\n  } else {\n    digits = digits.replace(/\\+/g, '');\n  }\n\n  let e164 = '';\n\n  if (/^04\\d{8}$/.test(digits)) {\n    e164 = '+61' + digits.slice(1);\n  } else if (/^\\+614\\d{8}$/.test(digits)) {\n    e164 = digits;\n  } else if (/^614\\d{8}$/.test(digits)) {\n    e164 = '+' + digits;\n  } else if (/^4\\d{8}$/.test(digits)) {\n    e164 = '+61' + digits;\n  } else if (/^0[2378]\\d{8}$/.test(digits)) {\n    return { json: { ...item.json, phone_e164: '', phone_status: STATUS.LIKELY_LANDLINE } };\n  } else {\n    return { json: { ...item.json, phone_e164: '', phone_status: STATUS.INVALID_FORMAT } };\n  }\n\n  return { json: { ...item.json, phone_e164: e164, phone_status: STATUS.VALID } };\n});"
+      },
+      "id": "5bb9f6cd-9683-46f6-bd1a-2ad820eb2909",
+      "name": "Code: Normalise Phone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "ifsd0001-0000-0000-0000-000000000001",
+              "leftValue": "={{ $json.phone_status }}",
+              "rightValue": "valid",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "ifsd0001-0000-0000-0000-000000000002",
+              "leftValue": "={{ $json.is_internal }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "ifsd0001-0000-0000-0000-000000000003",
+              "leftValue": "={{ $json.is_cancelled }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "ifsd0001-0000-0000-0000-000000000004",
+              "leftValue": "={{ $json.skip_marker }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      },
+      "id": "6278ac98-a4f2-47ca-86f7-f69987f1ec14",
+      "name": "IF: Should we send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -560,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Clinic Config').first().json.audit_sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "audit_log",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "event_id",
+              "lookupValue": "={{ $('Set: Extract Inputs').item.json.event_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnAllMatches": true
+        }
+      },
+      "id": "357b2462-f7d7-46be-a8a6-a43d58cf6f26",
+      "name": "Sheets: Read Audit Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -320,
+        -40
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets - Clinic"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentEvent = $('Set: Extract Inputs').item.json;\nconst SIXTY_MIN_MS = 60 * 60 * 1000;\nconst now = Date.now();\n\nconst recentSend = items.find(it => {\n  if (it.json.status !== 'sent') return false;\n  const sentAt = new Date(it.json.timestamp_iso).getTime();\n  return (now - sentAt) < SIXTY_MIN_MS;\n});\n\nif (recentSend) {\n  return [{ json: { ...currentEvent, idempotent_skip: true } }];\n}\nreturn [{ json: { ...currentEvent, idempotent_skip: false } }];"
+      },
+      "id": "0feea351-554f-4fc2-a630-94f8dd6dfe59",
+      "name": "Code: Idempotency Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "ifid0001-0000-0000-0000-000000000001",
+              "leftValue": "={{ $json.idempotent_skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      },
+      "id": "0faeb39a-d8ef-406a-b0ab-f6224265c8fd",
+      "name": "IF: Already sent in last 60 min?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        120,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "smsb0001-0000-0000-0000-000000000001",
+              "name": "sms_body",
+              "value": "={{ (() => { const start = new Date($('Set: Extract Inputs').item.json.event_start_iso); const tz = $('Set: Extract Inputs').item.json.event_timezone || 'Australia/Perth'; const dateStr = start.toLocaleDateString('en-AU', { weekday: 'short', day: '2-digit', month: 'short', timeZone: tz }); const timeStr = start.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz }); const loc = $('Set: Extract Inputs').item.json.event_location; const clinic = $('Clinic Config').first().json.clinic_name; const url = $('Clinic Config').first().json.reschedule_url; return `Hi, this is ${clinic}. Your appointment is confirmed for ${dateStr} at ${timeStr}` + (loc ? ` (${loc})` : '') + `. To reschedule or cancel, visit ${url}. Reply STOP to opt out.`; })() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "79f8e03b-e4e7-4b45-95af-b0afc9b6be22",
+      "name": "Set: Build SMS Body",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        350,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "={{ $('Clinic Config').first().json.twilio_from_number }}",
+        "to": "={{ $('Code: Normalise Phone').item.json.phone_e164 }}",
+        "message": "={{ $('Set: Build SMS Body').item.json.sms_body }}"
+      },
+      "id": "7fb2d7fe-ccaa-46db-a544-dfc96a554426",
+      "name": "Twilio: Send SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        580,
+        -140
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "twilioApi": {
+          "name": "Twilio - Clinic AU"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "auds0001-0000-0000-0000-000000000001",
+              "name": "timestamp_iso",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "auds0001-0000-0000-0000-000000000002",
+              "name": "event_id",
+              "value": "={{ $('Set: Extract Inputs').item.json.event_id }}",
+              "type": "string"
+            },
+            {
+              "id": "auds0001-0000-0000-0000-000000000003",
+              "name": "event_start_iso",
+              "value": "={{ $('Set: Extract Inputs').item.json.event_start_iso }}",
+              "type": "string"
+            },
+            {
+              "id": "auds0001-0000-0000-0000-000000000004",
+              "name": "phone_e164",
+              "value": "={{ $('Code: Normalise Phone').item.json.phone_e164 }}",
+              "type": "string"
+            },
+            {
+              "id": "auds0001-0000-0000-0000-000000000005",
+              "name": "status",
+              "value": "={{ $('Twilio: Send SMS').item.json.error ? 'error_twilio' : 'sent' }}",
+              "type": "string"
+            },
+            {
+              "id": "auds0001-0000-0000-0000-000000000006",
+              "name": "twilio_sid",
+              "value": "={{ $('Twilio: Send SMS').item.json.sid || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "auds0001-0000-0000-0000-000000000007",
+              "name": "error_message",
+              "value": "={{ $('Twilio: Send SMS').item.json.error?.message || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "835b89af-b58a-4d0a-8be6-c625f4bde6de",
+      "name": "Set: Build Audit Row (sent/error)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        820,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "audk0001-0000-0000-0000-000000000001",
+              "name": "timestamp_iso",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "audk0001-0000-0000-0000-000000000002",
+              "name": "event_id",
+              "value": "={{ $('Set: Extract Inputs').item.json.event_id }}",
+              "type": "string"
+            },
+            {
+              "id": "audk0001-0000-0000-0000-000000000003",
+              "name": "event_start_iso",
+              "value": "={{ $('Set: Extract Inputs').item.json.event_start_iso }}",
+              "type": "string"
+            },
+            {
+              "id": "audk0001-0000-0000-0000-000000000004",
+              "name": "phone_e164",
+              "value": "={{ $('Code: Normalise Phone').item.json.phone_e164 }}",
+              "type": "string"
+            },
+            {
+              "id": "audk0001-0000-0000-0000-000000000005",
+              "name": "status",
+              "value": "={{ (() => { const item = $('Set: Extract Inputs').item.json; const phoneStatus = $('Code: Normalise Phone').item.json.phone_status; if (item.is_internal) return 'skipped_internal'; if (item.is_cancelled) return 'skipped_cancelled'; if (item.skip_marker) return 'skipped_marker'; if (phoneStatus === 'empty') return 'skipped_phone_empty'; if (phoneStatus === 'likely_landline') return 'skipped_landline'; return 'skipped_invalid_phone'; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "audk0001-0000-0000-0000-000000000006",
+              "name": "twilio_sid",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "audk0001-0000-0000-0000-000000000007",
+              "name": "error_message",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "99437f1a-8dd8-4242-b668-a31902f2be66",
+      "name": "Set: Build Audit Row (skipped)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -310,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "audi0001-0000-0000-0000-000000000001",
+              "name": "timestamp_iso",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "audi0001-0000-0000-0000-000000000002",
+              "name": "event_id",
+              "value": "={{ $('Set: Extract Inputs').item.json.event_id }}",
+              "type": "string"
+            },
+            {
+              "id": "audi0001-0000-0000-0000-000000000003",
+              "name": "event_start_iso",
+              "value": "={{ $('Set: Extract Inputs').item.json.event_start_iso }}",
+              "type": "string"
+            },
+            {
+              "id": "audi0001-0000-0000-0000-000000000004",
+              "name": "phone_e164",
+              "value": "={{ $('Code: Normalise Phone').item.json.phone_e164 }}",
+              "type": "string"
+            },
+            {
+              "id": "audi0001-0000-0000-0000-000000000005",
+              "name": "status",
+              "value": "skipped_idempotent",
+              "type": "string"
+            },
+            {
+              "id": "audi0001-0000-0000-0000-000000000006",
+              "name": "twilio_sid",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "audi0001-0000-0000-0000-000000000007",
+              "name": "error_message",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d95f3078-166d-4f15-a09d-e85d8e35f8ef",
+      "name": "Set: Build Audit Row (idempotent)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        350,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Clinic Config').first().json.audit_sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "audit_log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "84769337-c4fd-42fc-8689-3810a8fa9cb5",
+      "name": "Sheets: Append Audit Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1080,
+        -40
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets - Clinic"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Google Calendar Trigger — Event Created": {
+      "main": [
+        [
+          {
+            "node": "Clinic Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Trigger — Event Updated": {
+      "main": [
+        [
+          {
+            "node": "Clinic Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clinic Config": {
+      "main": [
+        [
+          {
+            "node": "Set: Extract Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Extract Inputs": {
+      "main": [
+        [
+          {
+            "node": "Code: Normalise Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Normalise Phone": {
+      "main": [
+        [
+          {
+            "node": "IF: Should we send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Should we send?": {
+      "main": [
+        [
+          {
+            "node": "Sheets: Read Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set: Build Audit Row (skipped)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets: Read Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Code: Idempotency Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Idempotency Check": {
+      "main": [
+        [
+          {
+            "node": "IF: Already sent in last 60 min?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Already sent in last 60 min?": {
+      "main": [
+        [
+          {
+            "node": "Set: Build Audit Row (idempotent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set: Build SMS Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Build SMS Body": {
+      "main": [
+        [
+          {
+            "node": "Twilio: Send SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio: Send SMS": {
+      "main": [
+        [
+          {
+            "node": "Set: Build Audit Row (sent/error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Build Audit Row (sent/error)": {
+      "main": [
+        [
+          {
+            "node": "Sheets: Append Audit Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Build Audit Row (skipped)": {
+      "main": [
+        [
+          {
+            "node": "Sheets: Append Audit Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Build Audit Row (idempotent)": {
+      "main": [
+        [
+          {
+            "node": "Sheets: Append Audit Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveExecutionProgress": true
+  },
+  "pinData": {},
+  "staticData": null,
+  "active": false,
+  "versionId": "b3ea4b30-cfd0-4fbc-ad83-4fc1b8f182bc",
+  "id": "WF-01-SMS-CONFIRMATION"
+}

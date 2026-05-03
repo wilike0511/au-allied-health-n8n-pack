@@ -1,0 +1,55 @@
+{
+  "name": "WF-01 ERR — SMS Confirmation Errors",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "bc3b11fa-d08b-4bca-87ba-9bd86a2bc5b9",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "alerts@yourclinic.com.au",
+        "subject": "=[n8n] SMS Confirmation workflow error - {{ $json.execution.lastNodeExecuted }}",
+        "message": "=SMS Confirmation workflow error\n\nWorkflow: {{ $json.workflow.name }}\nNode:     {{ $json.execution.lastNodeExecuted }}\nError:    {{ $json.execution.error.message }}\nTime:     {{ $now.toISO() }}\nExecution: {{ $json.execution.url }}"
+      },
+      "id": "fb6c698d-d0f7-4750-8784-f5498a8b9f38",
+      "name": "Gmail: Send Error Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -20,
+        120
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail - Clinic Alerts"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Send Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "pinData": {},
+  "staticData": null,
+  "active": false,
+  "versionId": "c1320e8a-a6d8-4cda-a011-d7d20a7be5f4",
+  "id": "WF-01-ERR-SMS-CONFIRMATION"
+}
